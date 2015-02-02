@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import com.typesafe.sbt.SbtScalariform._
 
 object Build extends sbt.Build {
 
@@ -15,7 +16,7 @@ object Build extends sbt.Build {
               libraryDependencies <<= (scalaVersion) { sv =>
                 Seq(
                   finagleDep(sv),
-                  "net.databinder" %% "unfiltered-netty" % "0.6.8"
+                  unfilteredDep("netty", sv)
                 )
               }
             ))
@@ -28,7 +29,7 @@ object Build extends sbt.Build {
               libraryDependencies <<= (scalaVersion) { sv =>
                 Seq(
                   finagleDep(sv),
-                  "net.databinder" %% "unfiltered-scalatest" % "0.6.8"
+                  unfilteredDep("scalatest", sv)
                 )
               }
             )) dependsOn(server)
@@ -40,7 +41,7 @@ object Build extends sbt.Build {
         libraryDependencies <<= (scalaVersion) { sv =>
           Seq(
             finagleDep(sv),
-            "net.databinder" %% "unfiltered-util" % "0.6.8"
+            unfilteredDep("util", sv)
           )
         }
       )) dependsOn(core)
@@ -48,8 +49,23 @@ object Build extends sbt.Build {
   def finagleDep(scalaVersion: String) =
     if(scalaVersion startsWith "2.9.")
       "com.twitter" % "finagle-http_2.9.2" % "6.8.1"
-    else
+    else if(scalaVersion startsWith "2.10.")
       "com.twitter" %% "finagle-http" % "6.8.1"
+    else
+      "com.twitter" %% "finagle-http" % "6.24.0"
+
+  def unfilteredDep(artifcatSubId: String, scalaVersion: String) = {
+    val artifcatId = "unfiltered-" + artifcatSubId
+    if (scalaVersion startsWith "2.9.")
+      "net.databinder" %% artifcatId % "0.6.8"
+    else if (scalaVersion startsWith "2.10.")
+      "net.databinder" %% artifcatId % "0.6.8"
+    else
+      if (artifcatSubId == "scalatest")
+        "net.databinder" %% artifcatId % "0.8.4"
+      else
+        "net.databinder" %% artifcatId % "0.7.1"
+  }
 
   def local(name: String) = LocalProject("unfinagled-" + name)
             
@@ -63,8 +79,8 @@ object Shared {
 
   val settings = Seq(
     organization := "com.novus",
-    scalaVersion := "2.10.2",
-    crossScalaVersions := Seq("2.9.3", "2.10.1", "2.10.2"),
+    scalaVersion := "2.11.4",
+    crossScalaVersions := Seq("2.9.3", "2.10.1", "2.10.2", "2.11.4"),
     scalacOptions := Seq("-deprecation", "-unchecked"),
     initialCommands := "import com.novus.unfinagled._",
     shellPrompt := ShellPrompt.buildShellPrompt,
@@ -93,8 +109,29 @@ object Shared {
         Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     },
     credentials += Credentials(Path.userHome / ".ivy2" / ".sonatype")
-  ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++ Format.settings
-  
+  ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+  scalariformSettings
+
+  import scalariform.formatter.preferences._
+
+  ScalariformKeys.preferences := ScalariformKeys.preferences.value.
+      setPreference(AlignParameters, true).
+      setPreference(AlignSingleLineCaseStatements, true).
+      setPreference(CompactControlReadability, true).
+      setPreference(CompactStringConcatenation, false).
+      setPreference(DoubleIndentClassDeclaration, true).
+      setPreference(FormatXml, true).
+      setPreference(IndentLocalDefs, true).
+      setPreference(IndentPackageBlocks, true).
+      setPreference(IndentSpaces, 2).
+      setPreference(MultilineScaladocCommentsStartOnFirstLine, true).
+      setPreference(PreserveSpaceBeforeArguments, false).
+      setPreference(PreserveDanglingCloseParenthesis, false).
+      setPreference(RewriteArrowSymbols, false).
+      setPreference(SpaceBeforeColon, false).
+      setPreference(SpaceInsideBrackets, false).
+      setPreference(SpacesWithinPatternBinders, true)  
 }
 
 // Shell prompt which show the current project, git branch and build version
@@ -119,33 +156,3 @@ object ShellPrompt {
   }
 }
 
-object Format {
-
-  import com.typesafe.sbtscalariform.ScalariformPlugin
-  import ScalariformPlugin._
-
-  lazy val settings = scalariformSettings ++ Seq(
-    ScalariformKeys.preferences := formattingPreferences
-  )
-
-  lazy val formattingPreferences = {
-    import scalariform.formatter.preferences._
-    FormattingPreferences().
-      setPreference(AlignParameters, true).
-      setPreference(AlignSingleLineCaseStatements, true).
-      setPreference(CompactControlReadability, true).
-      setPreference(CompactStringConcatenation, false).
-      setPreference(DoubleIndentClassDeclaration, true).
-      setPreference(FormatXml, true).
-      setPreference(IndentLocalDefs, true).
-      setPreference(IndentPackageBlocks, true).
-      setPreference(IndentSpaces, 2).
-      setPreference(MultilineScaladocCommentsStartOnFirstLine, true).
-      setPreference(PreserveSpaceBeforeArguments, false).
-      setPreference(PreserveDanglingCloseParenthesis, false).
-      setPreference(RewriteArrowSymbols, false).
-      setPreference(SpaceBeforeColon, false).
-      setPreference(SpaceInsideBrackets, false).
-      setPreference(SpacesWithinPatternBinders, true)
-  }
-}

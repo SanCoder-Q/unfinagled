@@ -25,7 +25,7 @@ trait FinagleServed[T] extends FeatureSpec with Hosted {
     finally { h.shutdown() }
   }
 
-  override protected def withFixture(test: NoArgTest) {
+  override protected def withFixture(test: NoArgTest) = {
     val server = getServer
     try {
       server.start()
